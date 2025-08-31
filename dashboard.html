@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech-to-Text Dashboard</title>
+  <link rel="stylesheet" href="dashboard-style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="sidebar">
+      <div class="logo">
+        <h2><i class='bx bxl-slack-old' ></i>Audiofy</h2>
+      </div>
+      <nav>
+        <ul>
+          <li class="active"><a href="#"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li><a href="#"><i class="fas fa-history"></i> History</a></li>
+          <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+          <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+      </nav>
+      <div class="user-info">
+        <div class="user-avatar">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="user-details">
+          <h4>Guest User</h4>
+          <p>Free Plan</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <header>
+        <div class="header-left">
+          <h1>Speech-to-Text Dashboard</h1>
+        </div>
+        <div class="header-right">
+          <div class="language-selector">
+            <label for="language">Language:</label>
+            <select id="language">
+              <option value="en-US">English</option>
+              <option value="hi-IN">Hindi</option>
+              <option value="es-ES">Spanish</option>
+              <option value="fr-FR">French</option>
+              <option value="de-DE">German</option>
+              <option value="it-IT">Italian</option>
+              <option value="ja-JP">Japanese</option>
+              <option value="ko-KR">Korean</option>
+              <option value="zh-CN">Chinese (Simplified)</option>
+              <option value="ru-RU">Russian</option>
+              <option value="ar-SA">Arabic</option>
+            </select>
+          </div>
+        </div>
+      </header>
+      
+      <div class="content-wrapper">
+        <div class="card transcription-card">
+          <div class="card-header">
+            <h2>Real-Time Transcription</h2>
+            <div class="controls">
+              <button id="voice-input-btn" class="btn primary">
+                <i class="fas fa-microphone"></i> Start Recording
+              </button>
+              <div class="upload-container">
+                <button id="upload-btn" class="btn secondary">
+                  <i class="fas fa-upload"></i> Upload Audio
+                </button>
+                <input type="file" id="audio-upload" accept=".wav,.mp3" hidden>
+              </div>
+              <button id="launch-python-btn" class="btn primary">
+                <i class="fas fa-rocket"></i> Launch Advanced Recognition
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="recording-status" class="hidden">
+              <div class="recording-indicator"></div>
+              <span>Recording...</span>
+            </div>
+            <div id="file-info" class="hidden">
+              <i class="fas fa-file-audio"></i>
+              <span id="file-name">No file selected</span>
+            </div>
+            <div id="transcription-display" class="transcription-box">
+              <p class="placeholder">Your transcription will appear here...</p>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button id="save-pdf-btn" class="btn secondary">
+              <i class="fas fa-file-pdf"></i> Save as PDF
+            </button>
+            <button id="save-docx-btn" class="btn secondary">
+              <i class="fas fa-file-word"></i> Save as DOCX
+            </button>
+            <button id="download-all-btn" class="btn secondary">
+              <i class="fas fa-download"></i> Download All
+            </button>
+            <button id="summarize-btn" class="btn secondary">
+              <i class="fas fa-compress-alt"></i> Summarize
+            </button>
+          </div>
+        </div>
+        
+        <div class="cards-row">
+          <div class="card training-card">
+            <div class="card-header">
+              <h2>Training Interface</h2>
+            </div>
+            <div class="card-body">
+              <form id="training-form">
+                <div class="form-group">
+                  <label for="training-audio">Upload Audio:</label>
+                  <div class="upload-container">
+                    <button type="button" id="training-upload-btn" class="btn secondary">
+                      <i class="fas fa-upload"></i> Select File
+                    </button>
+                    <input type="file" id="training-audio" accept=".wav,.mp3" hidden>
+                    <span id="training-file-name">No file selected</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="transcript">Transcript:</label>
+                  <textarea id="transcript" rows="4" placeholder="Type or paste transcript here..."></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="speaker-name">Speaker Name (optional):</label>
+                  <input type="text" id="speaker-name" placeholder="e.g., Abhigyan Dubey">
+                </div>
+                <button type="submit" class="btn primary">
+                  <i class="fas fa-cloud-upload-alt"></i> Submit for Training
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card visualization-card">
+          <div class="card-header">
+            <h2>Visualization</h2>
+          </div>
+          <div class="card-body">
+            <div class="charts-container">
+              <div class="chart">
+                <h3>Model Accuracy</h3>
+                <div class="progress-container">
+                  <div class="progress-bar" style="width: 85%;">
+                    <span>85%</span>
+                  </div>
+                </div>
+              </div>
+              <div class="chart">
+                <h3>Training Progress</h3>
+                <div class="progress-container">
+                  <div class="progress-bar" style="width: 62%;">
+                    <span>62%</span>
+                  </div>
+                </div>
+              </div>
+              <div class="chart">
+                <h3>Dataset Size</h3>
+                <div class="progress-container">
+                  <div class="progress-bar" style="width: 40%;">
+                    <span>40%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card feedback-card">
+          <div class="card-header">
+            <h2>Feedback System</h2>
+          </div>
+          <div class="card-body">
+            <p>Help improve our transcription by correcting any mistakes:</p>
+            <textarea id="feedback-text" rows="4" placeholder="Paste transcription text and make corrections..."></textarea>
+            <button id="submit-feedback" class="btn primary">
+              <i class="fas fa-paper-plane"></i> Submit Corrections
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="python-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Advanced Speech Recognition</h2>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="src-language">Source Language:</label>
+          <select id="src-language">
+            <option value="en" selected>English</option>
+            <option value="hi">Hindi</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="dest-language">Destination Language:</label>
+          <select id="dest-language">
+            <option value="hi">Hindi</option>
+            <option value="en" selected>English</option>
+          </select>
+        </div>
+        <div id="advanced-spectrogram-container">
+          <canvas id="advanced-spectrogram" width="600" height="200"></canvas>
+        </div>
+        <div id="python-status">
+          <p>Click "Start Recognition" to begin</p>
+        </div>
+        <div id="python-result" class="hidden">
+          <h3>Recognition Results:</h3>
+          <div class="result-container">
+            <div class="result-item">
+              <h4>Original Text:</h4>
+              <p id="original-text"></p>
+            </div>
+            <div class="result-item">
+              <h4>Translated Text:</h4>
+              <p id="translated-text"></p>
+            </div>
+            <div class="result-item">
+              <h4>Detected Tone:</h4>
+              <div class="tone-badges">
+                <span id="detected-tone" class="tone-badge neutral">Neutral</span>
+              </div>
+            </div>
+          </div>
+          <div class="result-actions">
+            <button id="play-translation" class="btn primary">
+              <i class="fas fa-volume-up"></i> Play Translation
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="start-recognition" class="btn primary">
+          <i class="fas fa-microphone"></i> Start Recognition
+        </button>
+        <button id="close-modal" class="btn secondary">
+          <i class="fas fa-times"></i> Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+  <!-- Add the JSZip library for ZIP file creation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</body>
+</html>
