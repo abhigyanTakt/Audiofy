@@ -1,33 +1,33 @@
 SpeechRecognition is a web-based application that provides speech recognition, translation, and sentiment analysis features. Here’s what it does:
 
-Key Features
-Speech Recognition:
+  Key Features
+
+1. Speech Recognition:
 Converts spoken audio into text using Python libraries.
 
-Translation:
+2. Translation:
 Translates recognized text between languages using services like Google Translator.
 
-Sentiment Analysis:
+3. Sentiment Analysis:
 Analyzes the tone or sentiment of the transcribed text using NLP models (such as Hugging Face Transformers).
 
-User Interface:
+4. User Interface:
 The web interface (HTML/CSS/JS) allows users to log in, register, and interact with the system.
 Users can access pages like Home, About, Services, and Contact.
 
-Social Integration:
+5. Social Integration:
 The landing page provides links to social media for user engagement.
 
-Technologies Used
+6. Technologies Used
 Frontend:
 HTML, CSS, JavaScript (with Boxicons for icons).
 
-Backend:
+7. Backend:
 Python (Flask web framework), SpeechRecognition, deep-translator, transformers, pyttsx3, jiwer.
 
-Other:
-Audio processing, user authentication, and error rate calculation (WER).
 
-Typical Workflow
+Typical Workflow:
+
 User logs in or registers on the website.
 User uploads or records audio.
 The backend recognizes speech, translates it, and analyzes sentiment.
