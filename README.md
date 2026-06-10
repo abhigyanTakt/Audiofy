@@ -76,3 +76,8 @@
 - Fully responsive & mobile-friendly modern design
 
 ---
+
+
+
+
+NOTE-> more things will be added in near feature as i learn in the feature.
