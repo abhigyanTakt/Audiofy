@@ -2,10 +2,8 @@
 
 **A modern web-based application that converts speech into text, translates it across multiple languages, and analyzes sentiment — all in one seamless experience.**
 
-![License](https://img.shields.io/badge/License-MIT-green) 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue) 
 ![Flask](https://img.shields.io/badge/Flask-Framework-orange)
-![Languages](https://img.shields.io/badge/Languages-🌍-Multilingual-red)
 
 ---
 
