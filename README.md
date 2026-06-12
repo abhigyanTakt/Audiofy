@@ -87,7 +87,8 @@ NOTE-> more things will be added in near feature as i learn in the feature.
 Errors will be covers upcoming time to time
 
 
-Errors:
-1.Main Error-> Didn't able to detect microphone
+### **Errors:**
+1.Main Error-> Didn't able to detect microphone.
+
 2.Appearence:
    outdated apperarance.  (8:26 am 6/12/2026)
