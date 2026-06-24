@@ -114,8 +114,12 @@ def recognize_speech():
         }), 500
 
     try:
+        # Get language from request JSON body (default to en-US)
+        data = request.json or {}
+        language = data.get('language', 'en-US')
+
         # Recognize speech
-        text = translator.recognize_speech(language="en-US")
+        text = translator.recognize_speech(language=language)
         if text:
             return jsonify({
                 'success': True,
@@ -125,7 +129,7 @@ def recognize_speech():
             return jsonify({
                 'success': False,
                 'error': 'Could not recognize speech'
-            }), 500
+            })
     except Exception as e:
         logger.error(f"Error recognizing speech: {e}")
         return jsonify({

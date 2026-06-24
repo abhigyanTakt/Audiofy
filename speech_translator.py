@@ -70,9 +70,15 @@ class SpeechTranslator:
             try:
                 audio = recognizer.listen(source, timeout=5, phrase_time_limit=10)
                 print("Processing speech...")
-                text = recognizer.recognize_google(audio, language="en-US")
-                print(f"Recognized: {text}")
+                text = recognizer.recognize_google(audio, language=language)
+                try:
+                    print(f"Recognized: {text}")
+                except UnicodeEncodeError:
+                    print("Recognized text (contains non-ASCII characters, printed safely to API)")
                 return text
+            except sr.WaitTimeoutError:
+                print("Listening timed out waiting for phrase to start")
+                return None
             except sr.UnknownValueError:
                 print("Could not understand audio")
                 return None
@@ -87,7 +93,10 @@ class SpeechTranslator:
             translated_text = translator.translate(text)
         
             # Debugging: Log the translation process
-            print(f"Translating from {src} to {dest}: '{text}' -> '{translated_text}'")
+            try:
+                print(f"Translating from {src} to {dest}: '{text}' -> '{translated_text}'")
+            except UnicodeEncodeError:
+                print(f"Translating from {src} to {dest}: [text translation printed to log safely]")
         
             return translated_text
         except Exception as e:
@@ -169,7 +178,10 @@ class SpeechTranslator:
 
             # Recognize speech in the audio file
             text = self.recognizer.recognize_google(audio_data, language=language)
-            print(f"Transcription: {text}")
+            try:
+                print(f"Transcription: {text}")
+            except UnicodeEncodeError:
+                print("Transcription contains non-ASCII characters, printed safely to API")
             return text
 
         except sr.UnknownValueError:
