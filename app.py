@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, session
+from flask_cors import CORS
 import os
 import sys
 import json
@@ -6,7 +7,9 @@ import threading
 import time
 import logging
 import io
+import sqlite3
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Add imports for ZIP file creation
 import zipfile
@@ -23,7 +26,38 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Initialize Flask app
-app = Flask(__name__, static_folder='.', static_url_path='')
+DIST_FOLDER = os.path.join(os.path.dirname(__file__), 'frontend', 'dist')
+static_dir = DIST_FOLDER if os.path.exists(DIST_FOLDER) else '.'
+app = Flask(__name__, static_folder=static_dir, static_url_path='')
+app.secret_key = 'audiofy-secret-key-super-secure'
+CORS(app, supports_credentials=True)
+
+# Database setup
+DATABASE = os.path.join(os.path.dirname(__file__), 'audiofy.db')
+
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    try:
+        with get_db() as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.commit()
+            logger.info("Database initialized successfully.")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+
+init_db()
 
 # Initialize the sentiment analysis pipeline
 tone_analyzer = pipeline("sentiment-analysis")
@@ -74,7 +108,82 @@ def index():
 
 @app.route('/dashboard')
 def dashboard():
-    return app.send_static_file('dashboard.html')
+    return app.send_static_file('index.html')
+
+# Authentication APIs
+@app.route('/api/signup', methods=['POST'])
+def signup():
+    try:
+        data = request.json or {}
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+
+        if not username or not email or not password:
+            return jsonify({'success': False, 'error': 'All fields (username, email, password) are required.'}), 400
+
+        if len(password) < 6:
+            return jsonify({'success': False, 'error': 'Password must be at least 6 characters long.'}), 400
+
+        db = get_db()
+        # Check existing user
+        cursor = db.cursor()
+        cursor.execute('SELECT id FROM users WHERE email = ? OR username = ?', (email, username))
+        existing_user = cursor.fetchone()
+        if existing_user:
+            return jsonify({'success': False, 'error': 'User with this email or username already exists.'}), 400
+
+        hashed_pw = generate_password_hash(password)
+        cursor.execute('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
+                       (username, email, hashed_pw))
+        db.commit()
+
+        user_id = cursor.lastrowid
+        user_data = {'id': user_id, 'username': username, 'email': email}
+        session['user'] = user_data
+
+        return jsonify({'success': True, 'user': user_data, 'message': 'Account created successfully!'})
+    except Exception as e:
+        logger.error(f"Signup error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to create account.'}), 500
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    try:
+        data = request.json or {}
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+
+        if not email or not password:
+            return jsonify({'success': False, 'error': 'Email and password are required.'}), 400
+
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
+        user = cursor.fetchone()
+
+        if not user or not check_password_hash(user['password_hash'], password):
+            return jsonify({'success': False, 'error': 'Invalid email or password.'}), 401
+
+        user_data = {'id': user['id'], 'username': user['username'], 'email': user['email']}
+        session['user'] = user_data
+
+        return jsonify({'success': True, 'user': user_data, 'message': 'Logged in successfully!'})
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        return jsonify({'success': False, 'error': 'Login failed.'}), 500
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    session.pop('user', None)
+    return jsonify({'success': True, 'message': 'Logged out successfully!'})
+
+@app.route('/api/me', methods=['GET'])
+def get_me():
+    user = session.get('user')
+    if user:
+        return jsonify({'success': True, 'authenticated': True, 'user': user})
+    return jsonify({'success': True, 'authenticated': False, 'user': None})
 
 # Add a route to handle audio file uploads
 @app.route('/api/upload-audio', methods=['POST'])
