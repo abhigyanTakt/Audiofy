@@ -12,10 +12,10 @@
 <body>
     <header class="header">
         <nav class="navbar">
-                <a href="index.html" class="active">Home</a>
-                <a href="about.html">About</a>
-                <a href="services.html">Services</a>
-                <a href="contact.html">Contact</a>
+                <a href="/" class="active">Home</a>
+                <a href="/about">About</a>
+                <a href="/services">Services</a>
+                <a href="/contact">Contact</a>
         </nav>
 
         <form action="#" class="serach-bar">
@@ -25,6 +25,7 @@
     </header>
     
     <div class="background"></div>
+    <canvas id="cyber-particles" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2; pointer-events: none;"></canvas>
     <div class="container">
         <div class="content">
             <div class="logo" ><i class='bx bxl-slack-old' ></i>Audiofy</div>
@@ -48,14 +49,15 @@
                 <h2>Sign In</h2>
                 <div class="input-box">
                     <i class='bx bxs-envelope'></i>
-                    <input type="email" placeholder=" " required />
+                    <input type="email" id="login-email" placeholder=" " required />
                     <label>Email</label>
                 </div>
                 <div class="input-box">
                     <i class='bx bxs-lock-alt' ></i>
-                    <input type="password" placeholder=" " required />
+                    <input type="password" id="login-password" placeholder=" " required />
                     <label>Password</label>
                 </div>
+                <div id="login-error" style="color: #ff4a4a; margin-top: 10px; font-size: 14px; text-align: center;"></div>
                 <div class="remember-me">
                     <input type="checkbox" id="remember" />
                     <label for="remember">Remember Me</label>
@@ -72,24 +74,25 @@
                 <h2>Sign Up</h2>
                 <div class="input-box">
                     <i class='bx bxs-user' ></i>
-                    <input type="text" placeholder=" " required />
+                    <input type="text" id="register-username" placeholder=" " required />
                     <label>Name</label>
                 </div>
                 <div class="input-box">
                     <i class='bx bxs-envelope'></i>
-                    <input type="email" placeholder=" " required />
+                    <input type="email" id="register-email" placeholder=" " required />
                     <label>Email</label>
                 </div>
                 <div class="input-box">
                     <i class='bx bxs-lock-alt' ></i>
-                    <input type="password" placeholder=" " required />
+                    <input type="password" id="register-password" placeholder=" " required />
                     <label>Password</label>
                 </div>
                 <div class="terms">
                     <input type="checkbox" id="terms" required />
                     <label for="terms">I agree to the Terms and Conditions.</label>
                 </div>
-                <button class="btn">Sign Up</button>
+                <div id="register-error" style="color: #ff4a4a; margin-top: 10px; font-size: 14px; text-align: center;"></div>
+                <button class="btn" id="registerButton">Sign Up</button>
                 <div class="login-register">
                     <p>Already have an account? <a href="#" class="login-link">Sign In</a></p>
                 </div>

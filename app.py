@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect
 from flask_cors import CORS
 import os
 import sys
@@ -26,9 +26,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Initialize Flask app
-DIST_FOLDER = os.path.join(os.path.dirname(__file__), 'frontend', 'dist')
-static_dir = DIST_FOLDER if os.path.exists(DIST_FOLDER) else '.'
-app = Flask(__name__, static_folder=static_dir, static_url_path='')
+app = Flask(__name__, static_folder=None)
 app.secret_key = 'audiofy-secret-key-super-secure'
 CORS(app, supports_credentials=True)
 
@@ -58,6 +56,20 @@ def init_db():
         logger.error(f"Failed to initialize database: {e}")
 
 init_db()
+
+@app.before_request
+def protect_files():
+    path = request.path.lower()
+    # Block access to database, python source files, and configuration files
+    if any(path.endswith(ext) for ext in ['.db', '.py', '.git', '.gitignore', 'readme.md']):
+        return "Access Denied", 403
+        
+    # Redirect direct HTML file accesses to their respective authenticated routes
+    if path in ['/dashboard.html', '/about.html', '/services.html', '/contact.html', '/index.html']:
+        if path == '/index.html':
+            return redirect('/')
+        route = path.rsplit('.', 1)[0]
+        return redirect(route)
 
 # Initialize the sentiment analysis pipeline
 tone_analyzer = pipeline("sentiment-analysis")
@@ -104,11 +116,47 @@ UPLOAD_FOLDER = 'uploads'
 
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    if session.get('user'):
+        return redirect('/dashboard')
+    return send_file(os.path.join(os.path.dirname(__file__), 'index.html'))
 
 @app.route('/dashboard')
 def dashboard():
-    return app.send_static_file('index.html')
+    if not session.get('user'):
+        return redirect('/')
+    return send_file(os.path.join(os.path.dirname(__file__), 'frontend', 'dist', 'index.html'))
+
+@app.route('/about')
+def about():
+    return send_file(os.path.join(os.path.dirname(__file__), 'about.html'))
+
+@app.route('/services')
+def services():
+    return send_file(os.path.join(os.path.dirname(__file__), 'services.html'))
+
+@app.route('/contact')
+def contact():
+    return send_file(os.path.join(os.path.dirname(__file__), 'contact.html'))
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    if filename.startswith('api/'):
+        return "Not Found", 404
+    # Prevent directory traversal
+    if '..' in filename or filename.startswith('/'):
+        return "Access Denied", 403
+        
+    # Check in frontend/dist first
+    dist_path = os.path.join(os.path.dirname(__file__), 'frontend', 'dist', filename)
+    if os.path.exists(dist_path) and os.path.isfile(dist_path):
+        return send_file(dist_path)
+        
+    # Check in root folder
+    root_path = os.path.join(os.path.dirname(__file__), filename)
+    if os.path.exists(root_path) and os.path.isfile(root_path):
+        return send_file(root_path)
+        
+    return "Not Found", 404
 
 # Authentication APIs
 @app.route('/api/signup', methods=['POST'])

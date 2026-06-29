@@ -18,6 +18,78 @@ export default function AudioDashboard({ user, onOpenAuth }) {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
+  // Water Droplets Neon Effect
+  useEffect(() => {
+    const canvas = document.getElementById("water-droplets");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let droplets = [];
+    let animationFrameId;
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    class Droplet {
+      constructor() {
+        this.reset();
+        this.y = Math.random() * canvas.height;
+      }
+
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = -30;
+        this.vy = Math.random() * 4 + 3;
+        this.length = Math.random() * 25 + 20;
+        this.width = Math.random() * 2.0 + 1.0;
+        this.opacity = Math.random() * 0.4 + 0.45;
+      }
+
+      update() {
+        this.y += this.vy;
+        if (this.y > canvas.height + 20) {
+          this.reset();
+        }
+      }
+
+      draw() {
+        ctx.beginPath();
+        const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.length);
+        gradient.addColorStop(0, `rgba(0, 242, 254, 0)`);
+        gradient.addColorStop(1, `rgba(168, 85, 247, ${this.opacity})`);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = this.width;
+        ctx.lineCap = "round";
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x, this.y + this.length);
+        ctx.stroke();
+      }
+    }
+
+    const count = Math.min(80, Math.floor((window.innerWidth * window.innerHeight) / 20000));
+    for (let i = 0; i < count; i++) {
+      droplets.push(new Droplet());
+    }
+
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      droplets.forEach(d => {
+        d.update();
+        d.draw();
+      });
+      animationFrameId = requestAnimationFrame(render);
+    };
+    render();
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
   // Handle Speech Recognition via Web Speech API or Audio Stream recording
   const startRecording = async () => {
     try {
@@ -146,19 +218,87 @@ export default function AudioDashboard({ user, onOpenAuth }) {
     }
   };
 
-  const downloadDoc = (type) => {
+  const downloadDoc = async (type) => {
     if (!transcription) return;
-    const element = document.createElement("a");
-    const file = new Blob([transcription], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = `Audiofy_Transcription.${type}`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+
+    // Construct unified export content
+    let exportText = `AUDIOFY AI INTELLIGENCE REPORT\n`;
+    exportText += `====================================\n\n`;
+    exportText += `[ORIGINAL TRANSCRIPTION]\n`;
+    exportText += `${transcription}\n\n`;
+    
+    if (translatedText) {
+      exportText += `[TRANSLATION]\n`;
+      exportText += `${translatedText}\n\n`;
+    }
+    
+    if (summary) {
+      exportText += `[AI SUMMARY]\n`;
+      exportText += `${summary}\n\n`;
+    }
+
+    if (type === 'txt') {
+      const element = document.createElement("a");
+      const file = new Blob([exportText], {type: 'text/plain'});
+      element.href = URL.createObjectURL(file);
+      element.download = `Audiofy_Report.txt`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    } else if (type === 'pdf') {
+      try {
+        setLoading(true);
+        setStatusText('Generating PDF report...');
+        const res = await fetch('/api/generate-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: exportText, filename: 'Audiofy_Report' }),
+        });
+        if (!res.ok) throw new Error('Failed to generate PDF');
+        const blob = await res.blob();
+        const element = document.createElement("a");
+        element.href = URL.createObjectURL(blob);
+        element.download = `Audiofy_Report.pdf`;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+        setStatusText('PDF downloaded successfully!');
+      } catch (err) {
+        console.error(err);
+        setStatusText('Failed to download PDF.');
+      } finally {
+        setLoading(false);
+      }
+    } else if (type === 'doc' || type === 'docx') {
+      try {
+        setLoading(true);
+        setStatusText('Generating DOCX report...');
+        const res = await fetch('/api/generate-docx', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: exportText, filename: 'Audiofy_Report' }),
+        });
+        if (!res.ok) throw new Error('Failed to generate DOCX');
+        const blob = await res.blob();
+        const element = document.createElement("a");
+        element.href = URL.createObjectURL(blob);
+        element.download = `Audiofy_Report.docx`;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+        setStatusText('DOCX downloaded successfully!');
+      } catch (err) {
+        console.error(err);
+        setStatusText('Failed to download DOCX.');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
+      <canvas id="water-droplets" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1, pointerEvents: 'none' }} />
       {/* Banner / User Greeting */}
       <div className="glass-panel" style={{
         padding: '2rem', borderRadius: '24px', marginBottom: '2rem',
@@ -246,6 +386,9 @@ export default function AudioDashboard({ user, onOpenAuth }) {
                 <option value="fr">French</option>
                 <option value="de">German</option>
                 <option value="hi">Hindi</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+                <option value="zh-CN">Chinese (Mandarin)</option>
               </select>
             </div>
 
@@ -266,6 +409,9 @@ export default function AudioDashboard({ user, onOpenAuth }) {
                 <option value="de">German</option>
                 <option value="hi">Hindi</option>
                 <option value="en">English</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+                <option value="zh-CN">Chinese (Mandarin)</option>
               </select>
             </div>
           </div>
