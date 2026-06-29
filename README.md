@@ -97,3 +97,7 @@
 - **Fixed Document Exports**: Corrected the client-side document export logic. Added API connections to the ReportLab/Python-Docx backend engines to download valid, uncorrupted PDF and DOCX reports containing the original transcription, translations, and summaries.
 - **Vibrant Cyberpunk Theme**: Added a moving cyber-particles canvas background (cyan/magenta/purple connections) to the login interface, a neon water droplets rain effect to the dashboard, and intense neon glows to all buttons and inputs.
 - **Unicode Terminal Safety**: Redefined stream printing inside Python to handle Hindi, Japanese, and Korean character printing safely on Windows terminals.
+
+
+
+**This is an One step out of 3 step that its technology and logic will be added in a project that i have been thinking.**
