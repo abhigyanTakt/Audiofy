@@ -1,4 +1,38 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // Verify session and update user details
+  fetch("/api/me")
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success || !data.authenticated) {
+        window.location.href = "/"
+      } else {
+        const userDisplay = document.getElementById("user-display-name")
+        const emailDisplay = document.getElementById("user-display-email")
+        if (userDisplay) userDisplay.textContent = data.user.username
+        if (emailDisplay) emailDisplay.textContent = data.user.email
+      }
+    })
+    .catch(err => {
+      console.error("Error verifying authentication:", err)
+      window.location.href = "/"
+    });
+
+  // Logout handler
+  const logoutBtn = document.getElementById("logout-btn")
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault()
+      fetch("/api/logout", { method: "POST" })
+        .then(() => {
+          window.location.href = "/"
+        })
+        .catch(err => {
+          console.error("Error logging out:", err)
+          window.location.href = "/"
+        })
+    })
+  }
+
   const voiceInputBtn = document.getElementById("voice-input-btn")
   const uploadBtn = document.getElementById("upload-btn")
   const audioUpload = document.getElementById("audio-upload")
@@ -865,7 +899,24 @@ document.addEventListener("DOMContentLoaded", () => {
         // Set recognition parameters
         advancedRecognition.continuous = true; // Record until manually stopped
         advancedRecognition.interimResults = true;
-        advancedRecognition.lang = source === "en" ? "en-US" : "hi-IN";
+        // Set recognition language mapping
+        if (source === "en") {
+          advancedRecognition.lang = "en-US";
+        } else if (source === "hi") {
+          advancedRecognition.lang = "hi-IN";
+        } else if (source === "ja") {
+          advancedRecognition.lang = "ja-JP";
+        } else if (source === "ko") {
+          advancedRecognition.lang = "ko-KR";
+        } else if (source === "es") {
+          advancedRecognition.lang = "es-ES";
+        } else if (source === "fr") {
+          advancedRecognition.lang = "fr-FR";
+        } else if (source === "de") {
+          advancedRecognition.lang = "de-DE";
+        } else {
+          advancedRecognition.lang = source;
+        }
 
         let finalTranscript = "";
 
