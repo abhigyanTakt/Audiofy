@@ -4,6 +4,27 @@ import pyttsx3
 import time
 import os
 from jiwer import wer
+import static_ffmpeg
+static_ffmpeg.add_paths()
+
+# Redefine print to safely handle Unicode encoding errors on console output
+def print(*args, **kwargs):
+    import builtins
+    try:
+        builtins.print(*args, **kwargs)
+    except UnicodeEncodeError:
+        new_args = []
+        for arg in args:
+            if isinstance(arg, str):
+                new_args.append(arg.encode('ascii', 'backslashreplace').decode('ascii'))
+            else:
+                new_args.append(arg)
+        try:
+            builtins.print(*new_args, **kwargs)
+        except Exception:
+            pass
+    except Exception:
+        pass
 
 class SpeechTranslator:
     def __init__(self):
@@ -132,10 +153,10 @@ class SpeechTranslator:
             # This is already handled in setup_indian_voice()
             pass
         
-        elif language in ["es", "it", "fr"]:
-            # For Romance languages, try to use an appropriate voice
+        elif language in ["es", "it", "fr", "ja", "ko", "de", "ru", "zh-CN", "ar"]:
+            # Try to use an appropriate voice matching the requested language
             for voice in voices:
-                if any(lang in voice.name.lower() for lang in [language, "spanish", "italian", "french"]):
+                if any(term in voice.name.lower() for term in [language, "spanish", "italian", "french", "japanese", "korean", "german", "russian", "chinese", "arabic"]):
                     self.engine.setProperty('voice', voice.id)
                     print(f"Using voice: {voice.name}")
                     break
@@ -151,6 +172,23 @@ class SpeechTranslator:
     def transcribe_audio_file(self, file_path, language="en-US"):
         """Transcribe an uploaded audio file into text."""
         try:
+            # Map simple language codes to standard locales for Google Speech Recognition
+            lang_map = {
+                "en": "en-US",
+                "hi": "hi-IN",
+                "es": "es-ES",
+                "fr": "fr-FR",
+                "de": "de-DE",
+                "it": "it-IT",
+                "ja": "ja-JP",
+                "ko": "ko-KR",
+                "zh-cn": "zh-CN",
+                "zh-CN": "zh-CN",
+                "ru": "ru-RU",
+                "ar": "ar-SA"
+            }
+            language = lang_map.get(language.lower() if isinstance(language, str) else language, language)
+            
             # Check if file exists
             if not os.path.exists(file_path):
                 print(f"File not found: {file_path}")
@@ -168,13 +206,36 @@ class SpeechTranslator:
                 except ImportError:
                     print("pydub not available, trying to process file directly")
                 except Exception as e:
-                    print(f"Error converting audio: {e}")
+                    print(f"Error converting audio to WAV: {e}")
                     return None
 
-            # Load the audio file
-            with sr.AudioFile(file_path) as source:
-                print("Processing audio file...")
-                audio_data = self.recognizer.record(source)
+            # Load and read the audio file
+            audio_data = None
+            try:
+                with sr.AudioFile(file_path) as source:
+                    print("Processing audio file directly...")
+                    audio_data = self.recognizer.record(source)
+            except Exception as e:
+                print(f"Failed to read file directly with speech_recognition: {e}. Trying conversion to standard PCM WAV...")
+                # If reading directly failed (e.g. not a PCM wav file), convert it using pydub
+                try:
+                    from pydub import AudioSegment
+                    audio = AudioSegment.from_file(file_path)
+                    # Convert to standard mono 16kHz PCM WAV
+                    audio = audio.set_frame_rate(16000).set_channels(1)
+                    pcm_wav_path = file_path.rsplit(".", 1)[0] + "_pcm.wav"
+                    audio.export(pcm_wav_path, format="wav", codec="pcm_s16le")
+                    file_path = pcm_wav_path
+                    print(f"Successfully converted audio to PCM WAV: {file_path}")
+                    with sr.AudioFile(file_path) as source:
+                        audio_data = self.recognizer.record(source)
+                except Exception as convert_error:
+                    print(f"Error converting to PCM WAV: {convert_error}")
+                    return None
+
+            if not audio_data:
+                print("Failed to obtain audio data from file.")
+                return None
 
             # Recognize speech in the audio file
             text = self.recognizer.recognize_google(audio_data, language=language)

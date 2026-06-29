@@ -6,6 +6,7 @@ export default function Navbar({ user, setUser, onOpenAuth }) {
     try {
       await fetch('/api/logout', { method: 'POST' });
       setUser(null);
+      window.location.href = "/";
     } catch (err) {
       console.error('Logout failed', err);
     }

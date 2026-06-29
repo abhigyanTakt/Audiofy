@@ -1,4 +1,38 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // Verify session and update user details
+  fetch("/api/me")
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success || !data.authenticated) {
+        window.location.href = "/"
+      } else {
+        const userDisplay = document.getElementById("user-display-name")
+        const emailDisplay = document.getElementById("user-display-email")
+        if (userDisplay) userDisplay.textContent = data.user.username
+        if (emailDisplay) emailDisplay.textContent = data.user.email
+      }
+    })
+    .catch(err => {
+      console.error("Error verifying authentication:", err)
+      window.location.href = "/"
+    });
+
+  // Logout handler
+  const logoutBtn = document.getElementById("logout-btn")
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault()
+      fetch("/api/logout", { method: "POST" })
+        .then(() => {
+          window.location.href = "/"
+        })
+        .catch(err => {
+          console.error("Error logging out:", err)
+          window.location.href = "/"
+        })
+    })
+  }
+
   const voiceInputBtn = document.getElementById("voice-input-btn")
   const uploadBtn = document.getElementById("upload-btn")
   const audioUpload = document.getElementById("audio-upload")
@@ -44,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let recognition = null
   let currentTranscription = ""
   let pythonRecognitionActive = false
-  let recognitionResults = null
+  const recognitionResults = null
   let advancedRecognition = null
 
   // Audio context for spectrogram
@@ -150,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Initialize spectrogram
-  function initSpectrogram(stream) {
+  function initSpectrogram() {
     // Create spectrogram container if it doesn't exist
     if (!document.getElementById("spectrogram-container")) {
       const transcriptionCard = document.querySelector(".transcription-card .card-body")
@@ -178,24 +212,29 @@ document.addEventListener("DOMContentLoaded", () => {
       audioContext = new (window.AudioContext || window.webkitAudioContext)()
       analyser = audioContext.createAnalyser()
       analyser.fftSize = 2048
-    }
 
-    if (stream) {
-      try {
-        const source = audioContext.createMediaStreamSource(stream)
-        source.connect(analyser)
-      } catch (err) {
-        console.error("Error connecting media stream source:", err)
+      // Get microphone input
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          const source = audioContext.createMediaStreamSource(stream)
+          source.connect(analyser)
+
+          // Start drawing spectrogram
+          drawSpectrogram()
+        })
+        .catch((err) => {
+          console.error("Error accessing microphone for spectrogram:", err)
+        })
+    } else {
+      // Resume audio context if it was suspended
+      if (audioContext.state === "suspended") {
+        audioContext.resume()
       }
-    }
 
-    // Resume audio context if it was suspended
-    if (audioContext.state === "suspended") {
-      audioContext.resume()
+      // Start drawing spectrogram
+      drawSpectrogram()
     }
-
-    // Start drawing spectrogram
-    drawSpectrogram()
   }
 
   // Draw spectrogram
@@ -314,8 +353,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // Show user feedback
         transcriptionDisplay.innerHTML = '<p class="placeholder">Listening... Please speak clearly.</p>'
 
-        // Initialize spectrogram for visualization, passing the stream
-        initSpectrogram(stream)
+        // Initialize spectrogram for visualization
+        initSpectrogram()
 
         try {
           // Make sure recognition is properly initialized
@@ -838,7 +877,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Start Python recognition
-  async function startPythonRecognition() {
+  function startPythonRecognition() {
     if (pythonRecognitionActive) {
       stopPythonRecognition();
       return;
@@ -852,73 +891,108 @@ document.addEventListener("DOMContentLoaded", () => {
     const source = srcLanguage.value; // Source language
     const target = destLanguage.value; // Target language
 
-    // Map 'en' and 'hi' to locale tags expected by python's speech_recognition
-    const pythonLang = source === "hi" ? "hi-IN" : "en-US";
-
     try {
-      // Start spectrogram with audio level detection
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then(async (stream) => {
-          audioStream = stream;
-          drawAdvancedSpectrogram(stream);
+      if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        advancedRecognition = new SpeechRecognition();
 
-          try {
-            // Call the python backend recognize API
-            const response = await fetch("/api/recognize", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ language: pythonLang })
-            });
+        // Set recognition parameters
+        advancedRecognition.continuous = true; // Record until manually stopped
+        advancedRecognition.interimResults = true;
+        // Set recognition language mapping
+        if (source === "en") {
+          advancedRecognition.lang = "en-US";
+        } else if (source === "hi") {
+          advancedRecognition.lang = "hi-IN";
+        } else if (source === "ja") {
+          advancedRecognition.lang = "ja-JP";
+        } else if (source === "ko") {
+          advancedRecognition.lang = "ko-KR";
+        } else if (source === "es") {
+          advancedRecognition.lang = "es-ES";
+        } else if (source === "fr") {
+          advancedRecognition.lang = "fr-FR";
+        } else if (source === "de") {
+          advancedRecognition.lang = "de-DE";
+        } else {
+          advancedRecognition.lang = source;
+        }
 
-            const data = await response.json();
+        let finalTranscript = "";
 
-            if (data.success && data.transcription) {
-              const finalTranscript = data.transcription;
-              originalText.textContent = finalTranscript;
-              pythonStatus.innerHTML = "<p>Processing and translating...</p>";
+        // Handle recognition results
+        advancedRecognition.onresult = (event) => {
+          let interimTranscript = "";
 
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          // Update the recognized text dynamically
+          if (interimTranscript) {
+            originalText.textContent = interimTranscript + "...";
+          }
+          if (finalTranscript) {
+            originalText.textContent = finalTranscript;
+          }
+        };
+
+        // Handle recognition end
+        advancedRecognition.onend = async () => {
+          console.log("Speech recognition ended");
+          if (finalTranscript) {
+            pythonStatus.innerHTML = "<p>Processing and translating...</p>";
+
+            try {
               // Translate the full transcript
               const translatedResult = await translateText(finalTranscript, source, target);
               translatedTextElement.textContent = translatedResult;
 
-              // Generate summary
-              const summary = improvedClientSideSummarize(finalTranscript);
-
-              // Detect tone
-              const tone = enhancedToneDetection(finalTranscript);
-              updateToneBadge(tone);
-
-              // Save the results so they can be exported
-              recognitionResults = {
-                original: finalTranscript,
-                translated: translatedResult,
-                srcLangName: getLanguageName(source),
-                destLangName: getLanguageName(target),
-                tone: tone,
-                summary: summary
-              };
-
-              // Show results
+              // Show results (but do not play automatically)
               pythonResult.classList.remove("hidden");
               pythonStatus.innerHTML = "<p>Recognition complete!</p>";
-            } else {
-              pythonStatus.innerHTML = `<p>Error: ${data.error || "Could not recognize speech"}</p>`;
+            } catch (error) {
+              console.error("Translation error:", error);
+              pythonStatus.innerHTML = "<p>Error translating text. Please try again.</p>";
             }
-          } catch (error) {
-            console.error("Backend recognition error:", error);
-            pythonStatus.innerHTML = "<p>Error recognizing speech. Please try again.</p>";
-          } finally {
-            stopPythonRecognition();
+          } else {
+            pythonStatus.innerHTML = "<p>No speech detected. Please try again.</p>";
           }
-        })
-        .catch((error) => {
-          console.error("Error accessing microphone:", error);
-          pythonStatus.innerHTML = "<p>Error accessing microphone. Please check your settings.</p>";
+
           stopPythonRecognition();
-        });
+        };
+
+        // Handle errors
+        advancedRecognition.onerror = (event) => {
+          console.error("Speech recognition error:", event.error);
+          pythonStatus.innerHTML = `<p>Error: ${event.error}</p>`;
+          stopPythonRecognition();
+        };
+
+        // Start recognition
+        advancedRecognition.start();
+
+        // Start spectrogram with audio level detection
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((stream) => {
+            audioStream = stream;
+            drawAdvancedSpectrogram(stream);
+          })
+          .catch((error) => {
+            console.error("Error accessing microphone:", error);
+            pythonStatus.innerHTML = "<p>Error accessing microphone. Please check your settings.</p>";
+            stopPythonRecognition();
+          });
+      } else {
+        pythonStatus.innerHTML = "<p>Speech recognition not supported in this browser. Please try Chrome or Edge.</p>";
+        stopPythonRecognition();
+      }
     } catch (error) {
       console.error("Error initializing advanced recognition:", error);
       pythonStatus.innerHTML = "<p>Error initializing speech recognition. Please try again.</p>";
