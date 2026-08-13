@@ -101,6 +101,9 @@
 ### **July 31, 2026 (9:44PM)**
 - **Changes some algorithm , models , using latest Speech recognition features (After the updation of Python library SpeechRecogniton)**
 
+### **Aug 13, 2026 (1:30PM)**
+ - Some minor bug fixes and changed audio model
+
 
 **This is an One step out of 3 step that its technology and logic will be added in a project that i have been thinking.**
 
