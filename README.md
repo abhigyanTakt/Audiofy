@@ -105,6 +105,8 @@
  - Some minor bug fixes and changed audio model
 ### **Aug 17, 2026 (6:45PM)**
  - Added noise reducer
+ ### **Aug 22, 2026 (00:03)**
+ - Fixed Mic is not working in some browsers (like brave , tor etc)
 
 **This is an One step out of 3 step that its technology and logic will be added in a project that i have been thinking.**
 
